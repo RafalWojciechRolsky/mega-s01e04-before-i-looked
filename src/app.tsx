@@ -1,9 +1,14 @@
 import { Hono } from 'hono';
 import { loadConfig, type RigConfig } from './config.js';
+import { readNight } from './digest/read-night.js';
 import { lane } from './lane.js';
 import { readStatus } from './status.js';
+import { DigestPage } from './views/digest.js';
 import { Layout } from './views/layout.js';
 import { StatusBoard } from './views/status.js';
+
+// A night is a date and nothing else; anything else cannot name a file in runs/.
+const NIGHT = /^\d{4}-\d{2}-\d{2}$/;
 
 export function createApp(config: RigConfig = loadConfig()) {
   const app = new Hono();
@@ -17,6 +22,17 @@ export function createApp(config: RigConfig = loadConfig()) {
       </Layout>,
     ),
   );
+
+  app.get('/digest/:night', (c) => {
+    const night = c.req.param('night');
+    const digest = NIGHT.test(night) ? readNight(config.runsDir, night) : null;
+    if (!digest) return c.text('no run log for that night', 404);
+    return c.html(
+      <Layout title={`digest ${night}`} lane={lane()}>
+        <DigestPage night={night} digest={digest} />
+      </Layout>,
+    );
+  });
 
   return app;
 }
