@@ -1,4 +1,12 @@
-import type { Status } from '../status.js';
+import type { NightOnDisk, Status } from '../status.js';
+
+// The night's jobs by last status, or an em dash when the log could not be read (styleguide:
+// missing data renders as —, never as an empty cell).
+function counts(night: NightOnDisk): string {
+  if (!night.counts) return '—';
+  const { ok, retry, fail } = night.counts;
+  return `${ok} ok · ${retry} retry · ${fail} fail`;
+}
 
 export function StatusBoard({ status }: { status: Status }) {
   return (
@@ -20,7 +28,9 @@ export function StatusBoard({ status }: { status: Status }) {
       ) : (
         <ul>
           {status.nights.map((n) => (
-            <li>{n}</li>
+            <li>
+              <a href={`/digest/${n.night}`}>{n.night}</a> <span class="mute">{counts(n)}</span>
+            </li>
           ))}
         </ul>
       )}
