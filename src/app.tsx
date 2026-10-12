@@ -23,15 +23,27 @@ export function createApp(config: RigConfig = loadConfig()) {
     ),
   );
 
+  // One guard, one reader: the page and the JSON can never disagree about a night.
+  const nightDigest = (night: string) =>
+    NIGHT.test(night) ? readNight(config.runsDir, night) : null;
+
   app.get('/digest/:night', (c) => {
     const night = c.req.param('night');
-    const digest = NIGHT.test(night) ? readNight(config.runsDir, night) : null;
+    const digest = nightDigest(night);
     if (!digest) return c.text('no run log for that night', 404);
     return c.html(
       <Layout title={`digest ${night}`} lane={lane()}>
         <DigestPage night={night} digest={digest} />
       </Layout>,
     );
+  });
+
+  // The same rows the page renders, for agents to read.
+  app.get('/api/digest/:night', (c) => {
+    const night = c.req.param('night');
+    const digest = nightDigest(night);
+    if (!digest) return c.json({ error: 'no run log for that night' }, 404);
+    return c.json({ night, rows: digest.rows, badLines: digest.badLines });
   });
 
   return app;
